@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<body>
+    <div id="allPinDiv"></div>
+    <button id="btnToggleAll">Toggle All</button>
+</body>
+<script>
+    // Create WebSocket connection.
+    // const socket = new WebSocket('wss://tough-chiseled-puppet.glitch.me');
+    const socket = new WebSocket('ws://localhost:3000');
+
+    // Listen for messages
+    socket.addEventListener('message', (event) => {
+        const data = JSON.parse(event.data);
+        if (data.type === 'ALL_PINS') {
+            const pinDatas = data.data;
+            pinDatas.forEach((value) => {
+                const child = document.createElement('div');
+                child.innerHTML = `<label class="switch">
+                    <input type="checkbox" id="${value.pinCode}" value="${value.pinCode}" ${value.state ? " checked " : ""}>
+                    <span class="slider">${value.name}</span>
+                    </label>`;
+                allPinDiv.appendChild(child);
+            });
+
+            const checkboxs = document.querySelectorAll("input[type='checkbox']");
+            checkboxs.forEach((c) => {
+                c.addEventListener("change", (d) => {
+                    const state = d.target.checked ? 1 : 0;
+                    const pin = d.target.value;
+                    socket.send(JSON.stringify({
+                        type: 'TOGGLE_PIN',
+                        pinCode: pin,
+                        state: state
+                    }));
+                })
+            })
+        }
+    });
+    document.getElementById("btnToggleAll").addEventListener("click", () => {
+        const pinInputs = document.querySelectorAll("input[type='checkbox']")
+        pinInputs.forEach((c) => {
+            c.click();
+        })
+    })
+
+</script>
+<style>
+    #btnToggleAll {
+        padding: 5px 10px;
+        background-color: darkgoldenrod;
+        border: none;
+        border-radius: 10px;
+        color: white;
+        font-weight: bold;
+    }
+
+    #allPinDiv {
+        margin-bottom: 15px;
+    }
+</style>
+
+</html>
