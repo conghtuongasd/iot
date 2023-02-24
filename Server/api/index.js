@@ -1,9 +1,8 @@
+require('dotenv').config();
 var http = require('http');
 var WebSocket = require('ws');
-const { Device } = require('../db');
-const { requestHandler, broadcast } = require('../utils/routes');
-require('dotenv').config();
-
+const { Device, Schedule } = require('../db');
+const { stringify, requestHandler, broadcast, onloadSchedules, initDatabase } = require('../utils');
 var server = http.createServer(requestHandler);
 var ws = new WebSocket.Server({
     server
@@ -12,8 +11,10 @@ var clients = [];
 
 const onLoadData = async (socket) => {
     const devices = await Device.findAll();
-
-    socket.send(JSON.stringify({
+    const schedules = await Schedule.findAll();
+    // await initDatabase();
+    await onloadSchedules(socket, schedules, clients);
+    socket.send(stringify({
         type: 'ALL_PINS',
         data: devices
     }))

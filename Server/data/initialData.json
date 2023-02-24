@@ -1,0 +1,44 @@
+{
+    "Device": [
+        {
+            "name": "D1",
+            "pinCode": 5,
+            "state": 0
+        },
+        {
+            "name": "D2",
+            "pinCode": 4,
+            "state": 0
+        },
+        {
+            "name": "D3",
+            "pinCode": 0,
+            "state": 0
+        },
+        {
+            "name": "D4",
+            "pinCode": 2,
+            "state": 0
+        },
+        {
+            "name": "D5",
+            "pinCode": 14,
+            "state": 0
+        },
+        {
+            "name": "D6",
+            "pinCode": 12,
+            "state": 0
+        },
+        {
+            "name": "D7",
+            "pinCode": 13,
+            "state": 0
+        },
+        {
+            "name": "D8",
+            "pinCode": 15,
+            "state": 0
+        }
+    ]
+}

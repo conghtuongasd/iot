@@ -6,49 +6,184 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
+    <script src="https://code.jquery.com/jquery-3.6.3.min.js"></script>
 </head>
 
 <body>
-    <div id="allPinDiv"></div>
-    <button id="btnToggleAll">Toggle All</button>
+    <div class="container">
+        <div class="row">
+            <div class="col">
+                <div id="allPinDiv"></div>
+                <button id="btnToggleAll">Toggle All</button>
+            </div>
+            <div class="col p-3">
+                <form id="frm-Alarn" style="width: 100%;">
+                    <!-- int weekDay = pinData["weekDay"];
+                    int h = pinData["hour"];
+                    int m = pinData["minute"];
+                    int pin = pinData["pinCode"];
+                    int state = pinData["state"];
+                    int isLoop = pinData["isLoop"];
+                    int status = pinData["status"]; -->
+                    <div class="row py-1">
+                        <select id="dropdownDevices" name="pinCode" class="form-select" aria-label="Chọn thiết bị">
+                            <option selected>Chọn thiết bị</option>
+                        </select>
+                    </div>
+
+                    <div class="row py-1">
+                        <select id="dropdownDay" class="form-select" name="weekDay" aria-label="Chọn ngày">
+                            <option selected>Chọn ngày</option>
+                        </select>
+                    </div>
+
+                    <div class="row py-1">
+                        <select id="dropdownHour" class="form-select" name="hour" aria-label="Chọn giờ">
+                            <option selected>Chọn giờ</option>
+                        </select>
+                    </div>
+
+                    <div class="row py-1">
+                        <select id="dropdownMinute" class="form-select" name="minute" aria-label="Chọn phút">
+                            <option selected>Chọn phút</option>
+                        </select>
+                    </div>
+
+                    <div class="row justify-content-between py-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="isLoop" id="chkLoop">
+                            <label class="form-check-label" for="chkLoop">
+                                Lặp lại?
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="state" id="chkState">
+                            <label class="form-check-label" for="chkState">
+                                Bật/tắt?
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="status" id="chkActive">
+                            <label class="form-check-label" for="chkActive">
+                                Active
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="row action">
+                        <button type="button" id="btnAlarm" class="btn btn-success">Hẹn giờ</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 </body>
 <script>
     // Create WebSocket connection.
     // const socket = new WebSocket('wss://tough-chiseled-puppet.glitch.me');
     const socket = new WebSocket('ws://localhost:3000');
+    const weekDays = {
+        '0': 'Chủ nhật',
+        '1': 'Thứ hai',
+        '2': 'Thứ ba',
+        '3': 'Thứ tư',
+        '4': 'Thứ năm',
+        '5': 'Thứ sáu',
+        '6': 'Thứ bảy'
+    };
+    function loadData() {
+        // Listen for messages
+        socket.addEventListener('message', (event) => {
+            const data = JSON.parse(event.data);
+            if (data.type === 'ALL_PINS') {
+                const pinDatas = data.data;
+                pinDatas.forEach((value) => {
+                    $('#allPinDiv').append(`<div class="form-check">
+                    <input class="form-check-input chk-device" id="${value.pinCode}" type="checkbox" value="${value.pinCode}" ${value.state ? " checked " : ""}>
+                    <label class="form-check-label" for="flexCheckChecked">
+                        ${value.name}
+                    </label>
+                    </div>`);
+                });
 
-    // Listen for messages
-    socket.addEventListener('message', (event) => {
-        const data = JSON.parse(event.data);
-        if (data.type === 'ALL_PINS') {
-            const pinDatas = data.data;
-            pinDatas.forEach((value) => {
-                const child = document.createElement('div');
-                child.innerHTML = `<label class="switch">
-                    <input type="checkbox" id="${value.pinCode}" value="${value.pinCode}" ${value.state ? " checked " : ""}>
-                    <span class="slider">${value.name}</span>
-                    </label>`;
-                allPinDiv.appendChild(child);
+                const checkboxs = document.querySelectorAll(".chk-device");
+                checkboxs.forEach((c) => {
+                    c.addEventListener("change", (d) => {
+                        const state = d.target.checked ? 1 : 0;
+                        const pin = d.target.value;
+                        socket.send(JSON.stringify({
+                            type: 'TOGGLE_PIN',
+                            pinCode: pin,
+                            state: state
+                        }, null, 2));
+                    })
+                })
+            }
+        });
+        document.getElementById("btnToggleAll").addEventListener("click", () => {
+            const pinInputs = document.querySelectorAll(".chk-device")
+            pinInputs.forEach((c) => {
+                c.click();
+            })
+        });
+    }
+
+    function initUi() {
+        $.ajax({
+            url: '/load-data',
+            success: (data) => {
+                initDeviceDropdown(data.devices);
+                initDateTime();
+            }
+        })
+    }
+
+    function addOption(drpId, value, name) {
+        $(`#${drpId}`).append(`<option value="${value}">${name}</option>`)
+    }
+
+    function initDeviceDropdown(devices) {
+        if (devices) {
+            for (let index = 0; index < devices.length; index++) {
+                const device = devices[index];
+                addOption('dropdownDevices', device.pinCode, device.name)
+            }
+        }
+    }
+
+    function initDateTime() {
+        Object.keys(weekDays).forEach((day) => {
+            addOption('dropdownDay', day, weekDays[day])
+        })
+
+        for (let hour = 0; hour <= 23; hour++) {
+            addOption('dropdownHour', hour, hour)
+        }
+
+        for (let minute = 0; minute <= 59; minute++) {
+            addOption('dropdownMinute', minute, minute)
+        }
+    }
+
+    $(document).ready(() => {
+        loadData();
+        initUi();
+
+        $('#btnAlarm').click(() => {
+            const data = $('#frm-Alarn').serializeArray()
+            const job = {}
+            data.forEach((i) => {
+                if (i.name === 'isLoop' || i.name === 'state' || i.name === 'status') {
+                    job[i.name] = i.value === 'on' ? 1 : 0
+                } else {
+                    job[i.name] = i.value
+                }
             });
 
-            const checkboxs = document.querySelectorAll("input[type='checkbox']");
-            checkboxs.forEach((c) => {
-                c.addEventListener("change", (d) => {
-                    const state = d.target.checked ? 1 : 0;
-                    const pin = d.target.value;
-                    socket.send(JSON.stringify({
-                        type: 'TOGGLE_PIN',
-                        pinCode: pin,
-                        state: state
-                    }));
-                })
-            })
-        }
-    });
-    document.getElementById("btnToggleAll").addEventListener("click", () => {
-        const pinInputs = document.querySelectorAll("input[type='checkbox']")
-        pinInputs.forEach((c) => {
-            c.click();
+            socket.send(JSON.stringify({
+                type: 'SET_ALARM',
+                data: job
+            }, null, 2))
         })
     })
 
@@ -67,5 +202,13 @@
         margin-bottom: 15px;
     }
 </style>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css"
+    integrity="sha384-xOolHFLEh07PJGoPkLv1IbcEPTNtaed2xpHsD9ESMhqIYd0nLMwNLD69Npy4HI+N" crossorigin="anonymous">
+<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"
+    integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN"
+    crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.min.js"
+    integrity="sha384-+sLIOodYLS7CIrQpBjl+C7nPvqq+FbNUBDunl/OZv93DB7Ln/533i8e/mZXLi/P+"
+    crossorigin="anonymous"></script>
 
 </html>
