@@ -4,32 +4,36 @@
 #include <WebSocketsClient.h>
 #include <Hash.h>
 #include <ArduinoJson.h>
-
 ESP8266WiFiMulti WiFiMulti;
 WebSocketsClient webSocket;
-
 #define USE_SERIAL Serial
 
-void parseData(char* jsonString) {
+void parseData(char *jsonString)
+{
   Serial.println(jsonString);
   const size_t capacity = JSON_OBJECT_SIZE(3) + JSON_ARRAY_SIZE(2) + 60;
   DynamicJsonBuffer jsonBuffer(capacity);
-  JsonObject& root = jsonBuffer.parseObject(jsonString);
-  if (!root.success()) {
+  JsonObject &root = jsonBuffer.parseObject(jsonString);
+  if (!root.success())
+  {
     Serial.println(F("Parsing failed!"));
     return;
   }
 
-  const char* type = root["type"];
-  if (strcmp(type, "TOGGLE_PIN") == 0) {
+  const char *type = root["type"];
+  if (strcmp(type, "TOGGLE_PIN") == 0)
+  {
     int data = root["pinCode"];
     int value = root["state"];
     digitalWrite(data, !value);
-  } else if (strcmp(type, "ALL_PINS") == 0) {
-    JsonArray& datas = root["data"].as<JsonArray>();
+  }
+  else if (strcmp(type, "ALL_PINS") == 0)
+  {
+    JsonArray &datas = root["data"].as<JsonArray>();
     int arrayLength = datas.size();
-    for (int i = 0; i < arrayLength; i++) {
-      JsonObject& pinData = datas[i];
+    for (int i = 0; i < arrayLength; i++)
+    {
+      JsonObject &pinData = datas[i];
       int pin = pinData["pinCode"];
       int state = pinData["state"];
       digitalWrite(pin, !state);
@@ -37,13 +41,16 @@ void parseData(char* jsonString) {
   }
 }
 
-void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
+void webSocketEvent(WStype_t type, uint8_t *payload, size_t length)
+{
 
-  switch (type) {
+  switch (type)
+  {
     case WStype_DISCONNECTED:
       USE_SERIAL.printf("[WSc] Disconnected!\n");
       break;
-    case WStype_CONNECTED: {
+    case WStype_CONNECTED:
+      {
         USE_SERIAL.printf("[WSc] Connected to url: %s\n", payload);
 
         // send message to server when Connected
@@ -52,7 +59,7 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
       break;
     case WStype_TEXT:
       USE_SERIAL.printf("[WSc] get text: %s\n", payload);
-      parseData((char*)payload);
+      parseData((char *)payload);
       break;
     case WStype_BIN:
       USE_SERIAL.printf("[WSc] get binary length: %u\n", length);
@@ -70,14 +77,14 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
       USE_SERIAL.printf("[WSc] get pong\n");
       break;
   }
-
 }
 
-void setup() {
+void setup()
+{
   // USE_SERIAL.begin(921600);
   USE_SERIAL.begin(115200);
 
-  //Serial.setDebugOutput(true);
+  // Serial.setDebugOutput(true);
   USE_SERIAL.setDebugOutput(true);
   pinMode(D1, OUTPUT);
   pinMode(D2, OUTPUT);
@@ -96,14 +103,16 @@ void setup() {
   digitalWrite(D7, HIGH);
   digitalWrite(D8, HIGH);
 
-  for (uint8_t t = 4; t > 0; t--) {
+  for (uint8_t t = 4; t > 0; t--)
+  {
     USE_SERIAL.printf("[SETUP] BOOT WAIT %d...\n", t);
     delay(1000);
   }
 
   WiFiMulti.addAP("Will", "TanKhanh@@");
 
-  while (WiFiMulti.run() != WL_CONNECTED) {
+  while (WiFiMulti.run() != WL_CONNECTED)
+  {
     delay(100);
   }
 
@@ -120,11 +129,7 @@ void setup() {
   webSocket.setReconnectInterval(5000);
 }
 
-void loop() {
+void loop()
+{
   webSocket.loop();
-  static unsigned long lastSentTime = 0;
-  if (millis() - lastSentTime >= 5000) {
-    //    webSocket.sendTXT("Hello from ESP8266");
-    lastSentTime = millis();
-  }
 }
